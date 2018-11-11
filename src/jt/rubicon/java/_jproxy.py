@@ -4,12 +4,17 @@
 
 from __future__ import absolute_import
 
+import traceback
+
 from ...jvm.lib import annotate
 from ...jvm.lib import public
+from ...        import jni
+from ...jvm.jframe  import JFrame
+from ...jvm.jstring import JString
 
-from .         import types as jtypes
-from ._jclass  import JavaClass
-from ._reflect import reflect
+from ._jvm    import JVM
+from ._jclass import JavaClass
+from .        import types as jtypes
 
 
 @public
@@ -19,16 +24,33 @@ class JavaProxy(object):
 
         # Create a Java-side proxy for this Python-side object
 
-        jclass = self.__class__.__javaclass__
-        jobject = java.CallStaticObjectMethod(reflect.Python, reflect.Python__proxy,
-                                              jclass, jtypes.jlong(id(self)))
-        if jobject.value is None:
-            raise RuntimeError("Unable to create proxy instance.")
-        jobject = cast(java.NewGlobalRef(jobject), jtypes.jclass)
-        if jobject.value is None:
-            raise RuntimeError("Unable to create global reference to proxy instance.")
-        self.__javaobject__ = jobject
-        self._as_parameter_ = jobject
+        jclass = JVM.jvm.JClass(None, self.__class__.__javaclass__, borrowed=True)
+
+        with JVM.jvm as (jvm, jenv), JFrame(jenv, 4): # cloader, interfaces, ihandler, jproxy
+            try:
+                cloader  = jenv.CallObjectMethod(jclass.handle, jvm.Class.getClassLoader)
+                interfaces = jenv.NewObjectArray(1, jvm.Class.Class)
+                jenv.SetObjectArrayElement(interfaces, 0, jclass.handle)
+                jargs = jni.new_array(jni.jvalue, 1)
+                jargs[0].j = id(self)
+                ihandler = jenv.NewObject(jvm.jt_reflect_ProxyHandler.Class,
+                                          jvm.jt_reflect_ProxyHandler.Constructor, jargs)
+                jargs = jni.new_array(jni.jvalue, 3)
+                jargs[0].l = cloader
+                jargs[1].l = interfaces
+                jargs[2].l = ihandler
+                jproxy = jenv.CallStaticObjectMethod(jvm.Proxy.Class,
+                                                     jvm.Proxy.newProxyInstance, jargs)
+            except:
+                raise RuntimeError("Unable to create proxy instance.")
+            if not jproxy: # <AK> was: if jproxy.value is None:
+                raise RuntimeError("Unable to create proxy instance.")
+            try:
+                jproxy = jtypes.cast(jenv.NewGlobalRef(jproxy), jtypes.jclass)
+            except: # <AK> was: if jproxy.value is None:
+                raise RuntimeError("Unable to create global reference to proxy instance.")
+        self.__javaobject__ = jproxy
+        self._as_parameter_ = jproxy
 
         # Register this Python instance with the proxy cache
         # This is a weak reference because _proxy_cache is a registry,
@@ -69,19 +91,18 @@ def dispatch(instance, method, args):
     try:
         pyinstance = _proxy_cache[instance]
         signatures = pyinstance._methods.get(method)
-        if len(signatures) == 1:
-            signature = list(signatures)[0]
-            if len(args) != len(signature):
-                raise RuntimeError("argc provided for dispatch doesn't match registered method.")
-            try:
-                pymethod = getattr(pyinstance, method)
-                pyargs   = [dispatch_cast(jarg, jtype) for jarg, jtype in zip(args, signature)]
-                pymethod(*pyargs)
-            except Exception:
-                import traceback
-                traceback.print_exc()
-        else:
+        if len(signatures) != 1:
             raise RuntimeError("Can't handle multiple prototypes for same method name (yet!)")
+        signature = list(signatures)[0]
+        if len(args) != len(signature):
+            raise RuntimeError("argc provided for dispatch doesn't match registered method.")
+        try:
+            pymethod = getattr(pyinstance, method)
+            pyargs   = [dispatch_cast(jarg, type_signature)
+                        for jarg, type_signature in zip(args, signature)]
+            pymethod(*pyargs)
+        except Exception:
+            traceback.print_exc()
     except KeyError:
         raise RuntimeError("Unknown Python instance {}".format(instance))
 
@@ -96,32 +117,20 @@ def dispatch_cast(raw, type_signature):
     They need to be converted into Python objects to be passed to the proxied
     interface implementation.
     """
-    if type_signature == "Z":
-        return java.CallBooleanMethod(jtypes.jobject(raw), reflect.Boolean__booleanValue)
-    elif type_signature == "B":
-        return java.CallByteMethod(jtypes.jobject(raw), reflect.Byte__byteValue)
-    elif type_signature == "C":
-        return java.CallCharMethod(jtypes.jobject(raw), reflect.Char__charValue)
-    elif type_signature == "S":
-        return java.CallShortMethod(jtypes.jobject(raw), reflect.Short__shortValue)
-    elif type_signature == "I":
-        return java.CallIntMethod(jtypes.jobject(raw), reflect.Integer__intValue)
-    elif type_signature == "J":
-        return java.CallLongMethod(jtypes.jobject(raw), reflect.Long__longValue)
-    elif type_signature == "F":
-        return java.CallFloatMethod(jtypes.jobject(raw), reflect.Float__floatValue)
-    elif type_signature == "D":
-        return java.CallDoubleMethod(jtypes.jobject(raw), reflect.Double__doubleValue)
+    type_manager = JVM.jvm.type_manager
+    thandler = type_manager.get_handler(type_signature)
+    if type_signature in ("Z", "C", "B", "S", "I", "J", "F", "D"):
+        jobject = JVM.jvm.JObject(None, raw, borrowed=True)
+        return thandler.toPython(jobject)
     elif type_signature == "Ljava/lang/String;":
-        # Check for NULL return values
-        return java.GetStringUTFChars(cast(raw, jtypes.jstring), None).decode("utf-8") if c_void_p(raw).value else None
+        return thandler.toPython(raw)
     elif type_signature.startswith("L"):
-        # Check for NULL return values
-        if not jtypes.jobject(raw).value:
+        if raw:
+            java_class = JavaClass(type_signature[1:-1])
+            with JVM.jvm as (jvm, jenv):
+                return java_class(jni=jtypes.cast(jenv.NewGlobalRef(raw), jtypes.jclass))
+        else:
             return None
-        gref = java.NewGlobalRef(jtypes.jobject(raw))
-        java_class = JavaClass(type_signature[1:-1])
-        return java_class(jni=gref)
     else:
         raise ValueError("Don't know how to convert argument with type signature '{}'".format(
                          type_signature))

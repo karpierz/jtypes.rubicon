@@ -2,13 +2,21 @@
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 
+from ...jvm.lib import py2compatible
 from ...jvm.lib import annotate
 from ...jvm.lib import public
+from ...jvm.jframe import JFrame
 
-from ._jclass import _cache_field, _cache_methods
+from ._constants  import EJavaModifiers
+from ._jvm        import JVM
+from ._jmethod    import BoundJavaMethod
+from ._conversion import _convert_args_to_jargs, select_polymorph, _signature_for_params
+from ._jclass     import _cache_field, _cache_methods
+from .            import types as jtypes
 
 
 @public
+@py2compatible
 class JavaInstance(object):
 
     def __init__(self, *args, **kwargs):
@@ -21,59 +29,58 @@ class JavaInstance(object):
 
         if jobject is None:
 
-            klass = self.__class__.__javaclass__
+            jclass = JVM.jvm.JClass(None, self.__class__.__javaclass__, borrowed=True)
 
-            ##################################################################
             # Check that we know the constructors for the class
-            ##################################################################
 
             class_dict = self.__class__.__dict__
 
             constructors = class_dict["_constructors"]
             if constructors is None:
+
                 constructors = {}
-                with JFrame(jenv, 1): # constructors_j
-                    constructors_j = java.CallObjectMethod(class_dict["__javaclass__"], reflect.Class__getConstructors)
-                    if constructors_j.value is None:
-                        raise RuntimeError("Couldn't get constructor for '{}'".format(self))
-                    constructors_j = cast(constructors_j, jobjectArray)
 
-                    for i in range(java.GetArrayLength(constructors_j)):
-                        with JFrame(jenv, 2): # constructor, params
-                            constructor = java.GetObjectArrayElement(constructors_j, i)
+                try:
+                    jconstructors = jclass.getConstructors()
+                except:
+                    raise RuntimeError("Couldn't get constructor for '{}'".format(self))
+                for jconstructor in jconstructors:
+                    modifiers = jconstructor.getModifiers()
+                    is_public = EJavaModifiers.PUBLIC in modifiers
+                    if is_public:
+                        # We now know that a constructor exists, and we know the signature
+                        # of those constructors. However, we won't resolve the method
+                        # implementing the constructor until we need it.
+                        ctor_params = jconstructor.getParameterTypes()
+                        constructors[_signature_for_params(ctor_params)] = None
 
-                            modifiers = java.CallIntMethod(constructor, reflect.Constructor__getModifiers)
-                            is_public = java.CallStaticBooleanMethod(reflect.Modifier, reflect.Modifier__isPublic, modifiers)
-                            if is_public:
-                                # We now know that a constructor exists, and we know the signature
-                                # of those constructors. However, we won't resolve the method
-                                # implementing the constructor until we need it.
-                                params = java.CallObjectMethod(constructor, reflect.Constructor__getParameterTypes)
-                                params = cast(params, jobjectArray)
-                                constructors[signature_for_params(params)] = None
+                type.__setattr__(self.__class__, "_constructors", constructors)
 
-                    type.__setattr__(self.__class__, "_constructors", constructors)
-
-            ##################################################################
             # Invoke the JNI constructor
-            ##################################################################
+
             try:
                 arg_sig, match_types, constructor = select_polymorph(constructors, args)
                 if constructor is None:
                     sig = "".join(match_types)
-                    constructor = java.GetMethodID(klass, "<init>", "({})V".format("".join(sig)))
-                    if constructor is None:
-                        raise RuntimeError("Couldn't get method ID for {} constructor of {}".format(
-                                           sig, self.__class__))
+                    with JVM.jvm as (jvm, jenv):
+                        try:
+                            constructor = jenv.GetMethodID(jclass.handle, b"<init>", "({})V".format("".join(sig)).encode("utf-8"))
+                        except: # <AK> was: if constructor is None:
+                            raise RuntimeError("Couldn't get method ID for {} constructor of {}".format(
+                                               sig, self.__class__))
                     class_dict["_constructors"][sig] = constructor
 
-                jobject = java.NewObject(klass, constructor, *convert_args(args, match_types))
-                if not jobject:
-                    raise RuntimeError("Couldn't instantiate Java instance of {}.".format(
-                                       self.__class__))
-                jobject = cast(java.NewGlobalRef(jobject), jclass)
-                if jobject.value is None:
-                    raise RuntimeError("Unable to create global reference to instance.")
+                with JVM.jvm as (jvm, jenv), JFrame(jenv, 1):
+                    try:
+                        jargs = _convert_args_to_jargs(args, match_types)
+                        jobject = jenv.NewObject(jclass.handle, constructor, jargs.arguments)
+                    except: # <AK> was: if not jobject:
+                        raise RuntimeError("Couldn't instantiate Java instance of {}.".format(
+                                           self.__class__))
+                    try:
+                        jobject = jtypes.cast(jenv.NewGlobalRef(jobject), jtypes.jclass)
+                    except: # <AK> was: if jobject.value is None:
+                        raise RuntimeError("Unable to create global reference to instance.")
 
             except KeyError as exc:
                 raise ValueError("Can't find constructor matching argument signature {}. "
@@ -87,17 +94,13 @@ class JavaInstance(object):
         object.__setattr__(self, "__javaobject__", jobject)
         object.__setattr__(self, "_as_parameter_", jobject)
 
-    def __repr__(self):
-
-        return "<{}: {}>".format(self.__class__.__name__, self.__javaobject__.value)
-
     def __str__(self):
 
         return self.toString()
 
-    def __unicode__(self):
+    def __repr__(self):
 
-        return self.toString()
+        return "<{}: {}>".format(self.__class__.__name__, self.__javaobject__.value)
 
     def __getattr__(self, name):
 

@@ -5,9 +5,13 @@
 from ...jvm.lib import annotate
 from ...jvm.lib import public
 
-from .            import types as jtypes
-from ._jproxy     import JavaProxy
+from ._constants  import EJavaModifiers
+from ._jvm        import JVM
+from ._jfield     import StaticJavaField, JavaField
+from ._jmethod    import StaticJavaMethod, JavaMethod
+from ._conversion import _signature_for_type, _signature_for_params, _type_names_for_params
 from ._exceptions import UnknownClassException
+from .            import types as jtypes
 
 
 @public
@@ -18,54 +22,46 @@ class JavaClass(type):
         try:
             return _class_cache[descriptor]
         except KeyError:
-            jclass = java.FindClass(descriptor)
-            if jclass.value is None:
-                raise UnknownClassException(descriptor)
-            jclass = cast(java.NewGlobalRef(jclass), jtypes.jclass)
-            if jclass.value is None:
-                raise RuntimeError("Unable to create global reference to class.")
+            from ._jobject import JavaInstance
 
-            ##################################################################
+            name_trans = JVM.jvm.JClass.name_trans
+            class_name = descriptor.encode("utf-8").translate(name_trans).decode("utf-8")
+            try:
+                jclass = JVM.jvm.JClass.forName(class_name)
+            except:
+                raise UnknownClassException(descriptor)
+
             # Determine the alternate types for this class
-            ##################################################################
 
             # Best option is the type itself
             alternates = ["L{};".format(descriptor)]
 
             # Next preference is an interfaces
-            with JFrame(jenv, 1): # java_interfaces
-                java_interfaces = java.CallObjectMethod(jclass, reflect.Class__getInterfaces)
-                if java_interfaces.value is None:
-                    raise RuntimeError("Couldn't get interfaces for '{}'".format(self))
-                java_interfaces = cast(java_interfaces, jobjectArray)
-
-                for i in range(java.GetArrayLength(java_interfaces)):
-                    with JFrame(jenv, 2): # java_interface, name
-                        java_interface = java.GetObjectArrayElement(java_interfaces, i)
-
-                        name = java.CallObjectMethod(java_interface, reflect.Class__getName)
-                        name_str = java.GetStringUTFChars(cast(name, jtypes.jstring), None)
-
-                        alternates.append("L{};".format(name_str.replace('.', '/')))
+            try:
+                java_interfaces = jclass.getInterfaces()
+            except:
+                raise RuntimeError("Couldn't get interfaces for '{}'".format(descriptor))
+            for java_interface in java_interfaces:
+                name = str(java_interface.getName())
+                alternates.append("L{};".format(name.replace('.', '/')))
 
             # Then check all the superclasses
             java_superclass = jclass
             while True:
-                with JFrame(jenv, 2): # java_superclass, name
-                    java_superclass = java.CallObjectMethod(java_superclass, reflect.Class__getSuperclass)
-                    if java_superclass.value is None:
-                        break
+                java_superclass = java_superclass.getSuperclass()
+                if not java_superclass: # <AK> was: java_superclass.value is None
+                    break
+                name = str(java_superclass.getName())
+                alternates.append("L{};".format(name.replace('.', '/')))
 
-                    name = java.CallObjectMethod(java_superclass, reflect.Class__getName)
-                    name_str = java.GetStringUTFChars(cast(name, jtypes.jstring), None)
-
-                    alternates.append("L{};".format(name_str.replace('.', '/')))
+            with JVM.jvm as (_, jenv):
+                __javaclass__ = jtypes.cast(jenv.NewGlobalRef(jclass.handle), jtypes.jclass)
 
             # Cache the class instance, so we don't have to recreate it
             bases = (JavaInstance,)
-            name  = descriptor.encode("utf-8")
+            name  = descriptor
             attrs = dict(_descriptor=descriptor,
-                         __javaclass__=jclass,
+                         __javaclass__=__javaclass__,
                          _alternates=alternates,
                          _constructors=None,
                          _members={
@@ -77,7 +73,7 @@ class JavaClass(type):
                              "methods": {},
                          })
             _class_cache[descriptor] = java_class = super(JavaClass, cls).__new__(cls,
-                                                                          name, bases, attrs)
+                                                          str(name), bases, attrs)
             return java_class
 
     def __getattr__(self, name):
@@ -136,8 +132,9 @@ class JavaInterface(type):
     def __new__(cls, *args):
 
         if len(args) == 1:
+            from ._jproxy import JavaProxy
             descriptor, = args
-            name  = descriptor.encode("utf-8")
+            name  = descriptor
             bases = (JavaProxy,)
             attrs = {}
         else:
@@ -146,39 +143,35 @@ class JavaInterface(type):
         attrs.update(_descriptor=descriptor,
                      _alternates=["L{};".format(descriptor)],
                      _methods={})
-        java_class = super(JavaInterface, cls).__new__(cls, name, bases, attrs)
+        java_class = super(JavaInterface, cls).__new__(cls, str(name), bases, attrs)
 
-        jclass = java.FindClass(descriptor)
-        if jclass is None:
+        name_trans = JVM.jvm.JClass.name_trans
+        class_name = descriptor.encode("utf-8").translate(name_trans).decode("utf-8")
+        try:
+            jclass = JVM.jvm.JClass.forName(class_name)
+        except:
             raise UnknownClassException(descriptor)
-        java_class.__javaclass__ = cast(java.NewGlobalRef(jclass), jtypes.jclass)
-        if java_class.__javaclass__.value is None:
-            raise RuntimeError("Unable to create global reference to interface.")
 
-        ##################################################################
+        with JVM.jvm as (_, jenv):
+            java_class.__javaclass__ = jtypes.cast(jenv.NewGlobalRef(jclass.handle), jtypes.jclass)
+            if not java_class.__javaclass__: # <AK> was: if jclass.value is None:
+                raise RuntimeError("Unable to create global reference to interface.")
+
         # Load the methods for the class
-        ##################################################################
-        methods = java.CallObjectMethod(jclass, reflect.Class__getMethods)
-        if methods is None:
-            raise RuntimeError("Couldn't get methods for '{}'".format(self))
-        methods = cast(methods, jobjectArray)
 
-        method_count = java.GetArrayLength(methods)
-        for i in range(method_count):
-            java_method = java.GetObjectArrayElement(methods, i)
-            modifiers = java.CallIntMethod(java_method, reflect.Method__getModifiers)
-
-            public = java.CallStaticBooleanMethod(reflect.Modifier, reflect.Modifier__isPublic, modifiers)
-            if public:
-                static = java.CallStaticBooleanMethod(reflect.Modifier, reflect.Modifier__isStatic, modifiers)
-                if not static:
-                    name = java.CallObjectMethod(java_method, reflect.Method__getName)
-                    name_str = java.GetStringUTFChars(cast(name, jtypes.jstring), None)
-
-                    params = java.CallObjectMethod(java_method, reflect.Method__getParameterTypes)
-                    params = cast(params, jobjectArray)
-
-                    java_class._methods.setdefault(name_str, set()).add(type_names_for_params(params))
+        try:
+            java_methods = jclass.getMethods()
+        except:
+            raise RuntimeError("Couldn't get methods for '{}'".format(descriptor))
+        for java_method in java_methods:
+            modifiers = java_method.getModifiers()
+            is_public = EJavaModifiers.PUBLIC in modifiers
+            is_static = EJavaModifiers.STATIC in modifiers
+            if is_public and not is_static:
+                method_name   = str(java_method.getName())
+                method_params = java_method.getParameterTypes()
+                type_names = _type_names_for_params(method_params)
+                java_class._methods.setdefault(method_name, set()).add(type_names)
 
         return java_class
 
@@ -188,68 +181,81 @@ class JavaInterface(type):
 
 
 @public
-@anotate(java_class=JavaClass, static=bool)
+@annotate(java_class=JavaClass, static=bool)
 def _cache_field(java_class, name, static):
 
-    class_dict = java_class.__dict__
-    jclass = class_dict["__javaclass__"]
+    jclass = JVM.jvm.JClass(None, java_class.__javaclass__, borrowed=True)
 
-    with JFrame(jenv, 3): # java_field, java_type, type_name
+    try:
+        java_field = jclass.getField(name)
+    except: # NoSuchFieldException
+        return None
 
-        java_field = java.CallStaticObjectMethod(reflect.Python, reflect.Python__getField,
-                                                 jclass,
-                                                 java.NewStringUTF(name), jboolean(static))
-        if not java_field.value:
-            return None
+    modifiers = java_field.getModifiers()
+    is_public = EJavaModifiers.PUBLIC in modifiers
+    is_static = EJavaModifiers.STATIC in modifiers
+    if not is_public or is_static != static:
+        return None
 
-        java_type = java.CallObjectMethod(java_field, reflect.Field__getType)
+    field_type = java_field.getType()
 
-        type_name = java.CallObjectMethod(java_type,  reflect.Class__getName)
-        field_type_name = java.GetStringUTFChars(cast(type_name, jtypes.jstring), None)
-
-        if static:
-            wrapper = StaticJavaField(java_class=java_class, name=name,
-                                      signature=signature_for_type_name(field_type_name))
-        else:
-            wrapper = JavaField(java_class=java_class, name=name,
-                                signature=signature_for_type_name(field_type_name))
-
+    signature = _signature_for_type(field_type)
+    if static:
+        wrapper = StaticJavaField(java_class=java_class, name=name, signature=signature)
+    else:
+        wrapper = JavaField(java_class=java_class, name=name, signature=signature)
     return wrapper
 
 
 @public
-@anotate(java_class=JavaClass, static=bool)
+@annotate(java_class=JavaClass, static=bool)
 def _cache_methods(java_class, name, static):
 
-    class_dict = java_class.__dict__
-    jclass = class_dict["__javaclass__"]
+    jclass = JVM.jvm.JClass(None, java_class.__javaclass__, borrowed=True)
 
-    with JFrame(jenv, 1): # java_methods
-        java_methods = java.CallStaticObjectMethod(reflect.Python, reflect.Python__getMethods,
-                                                   jclass,
-                                                   java.NewStringUTF(name), jboolean(static))
-        if not java_methods.value:
+    jclass_hash = jclass.hashCode()
+
+    methods_map = (_static_methods_cache if static else _instance_methods_cache).get(jclass_hash) # {str: {Method}}
+    if methods_map is None:
+        try:
+            java_methods = jclass.getMethods()
+        except:
             return None
-        java_methods = cast(java_methods, jobjectArray)
 
-        if static:
-            wrapper = StaticJavaMethod(java_class=java_class, name=name)
-        else:
-            wrapper = JavaMethod(java_class=java_class, name=name)
+        static_methods_map   = {} # {str: {Method}}
+        instance_methods_map = {} # {str: {Method}}
 
-        for i in range(java.GetArrayLength(java_methods)):
-            with JFrame(jenv, 4): # java_method, params, java_type, type_name
-                java_method = java.GetObjectArrayElement(java_methods, i)
+        for java_method in java_methods:
+            modifiers = java_method.getModifiers()
+            is_public = EJavaModifiers.PUBLIC in modifiers
+            is_static = EJavaModifiers.STATIC in modifiers
+            if is_public:
+                method_name = str(java_method.getName())
+                alternatives_map = static_methods_map if is_static else instance_methods_map
+                alternatives = alternatives_map.get(method_name) # {Method}
+                if alternatives is None:
+                    alternatives_map[method_name] = alternatives = set()
+                alternatives.add(java_method)
 
-                params = java.CallObjectMethod(java_method, reflect.Method__getParameterTypes)
-                params = cast(params, jobjectArray)
+        _static_methods_cache[jclass_hash]   = static_methods_map
+        _instance_methods_cache[jclass_hash] = instance_methods_map
 
-                java_type = java.CallObjectMethod(java_method, reflect.Method__getReturnType)
+        methods_map = static_methods_map if static else instance_methods_map
 
-                type_name = java.CallObjectMethod(java_type, reflect.Class__getName)
-                return_type_name = java.GetStringUTFChars(cast(type_name, jtypes.jstring), None)
+    java_methods = methods_map.get(name)
+    if not java_methods:
+        return None
 
-                wrapper.add(signature_for_params(params), signature_for_type_name(return_type_name))
+    if static:
+        wrapper = StaticJavaMethod(java_class=java_class, name=name)
+    else:
+        wrapper = JavaMethod(java_class=java_class, name=name)
+
+    for java_method in java_methods:
+        params_java_types = java_method.getParameterTypes()
+        return_java_type  = java_method.getReturnType()
+        wrapper.add(_signature_for_params(params_java_types),
+                    _signature_for_type(return_java_type))
 
     return wrapper
 
@@ -258,3 +264,10 @@ def _cache_methods(java_class, name, static):
 # we do a return_cast() to a return type, we don't have to recreate
 # the class every time - we can re-use the existing class.
 _class_cache = {}
+
+# A 2 level maps of Class:
+#
+# Method name: Method for static methods
+_static_methods_cache   = {} # {Class, {str: {Method}}}
+# Method name: Method for instance methods
+_instance_methods_cache = {} # {Class, {str: {Method}}}

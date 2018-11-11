@@ -5,112 +5,76 @@
 from ...jvm.lib import annotate
 from ...jvm.lib import public
 
-from ._conversion import return_cast
+from ._jvm import JVM
 
 
 @public
 class StaticJavaField(object):
 
+    # Equivalent of: jt.jtypes.JavaField
+
     def __init__(self, java_class, name, signature):
 
-        self.java_class = java_class
-        self.name       = name
-        self._signature = signature
+        self.java_class  = java_class
+        self.name        = name
+        self.__signature = signature
+        type_manager = JVM.jvm.type_manager
+        self.__thandler  = type_manager.get_handler(self.__signature)
 
-        self._accessor = {
-            "Z": java.GetStaticBooleanField,
-            "B": java.GetStaticByteField,
-            "C": java.GetStaticCharField,
-            "S": java.GetStaticShortField,
-            "I": java.GetStaticIntField,
-            "J": java.GetStaticLongField,
-            "F": java.GetStaticFloatField,
-            "D": java.GetStaticDoubleField,
-        }.get(self._signature, java.GetStaticObjectField)
-
-        self._mutator = {
-            "Z": java.SetStaticBooleanField,
-            "B": java.SetStaticByteField,
-            "C": java.SetStaticCharField,
-            "S": java.SetStaticShortField,
-            "I": java.SetStaticIntField,
-            "J": java.SetStaticLongField,
-            "F": java.SetStaticFloatField,
-            "D": java.SetStaticDoubleField,
-        }.get(self._signature, java.SetStaticObjectField)
-
-        class_dict = self.java_class.__dict__
-        jclass = class_dict["__javaclass__"]
-
-        self.__jfield_id = java.GetStaticFieldID(jclass, self.name, self._signature)
-        if self.__jfield_id.value is None:
-            raise RuntimeError("Couldn't find static Java field '{}.{}'".format(
-                               jclass, self.name))
+        with JVM.jvm as (jvm, jenv):
+            try:
+                self.__jfield_id = jenv.GetStaticFieldID(self.java_class.__javaclass__,
+                                                         self.name.encode("utf-8"),
+                                                         self.__signature.encode("utf-8"))
+            except: # <AK> was: if self.__jfield_id.value is None:
+                raise RuntimeError("Couldn't find static Java field '{}.{}'".format(
+                                   self.java_class.__javaclass__, self.name))
 
     def get(self):
 
-        class_dict = self.java_class.__dict__
-        jclass = class_dict["__javaclass__"]
-
-        result = self._accessor(jclass, self.__jfield_id)
-        return return_cast(result, self._signature)
+        return self.__thandler.getStatic(self.__jfield_id, self.java_class.__javaclass__)
 
     def set(self, value):
 
-        class_dict = self.java_class.__dict__
-        jclass = class_dict["__javaclass__"]
+        from ..__config__ import config
 
-        self._mutator(jclass, self.__jfield_id, value)
+        if config.getboolean("WITH_VALID", False) and not self.__thandler.valid(value):
+            raise ValueError("Assigned value is not valid for required field type.")
+
+        self.__thandler.setStatic(self.__jfield_id, self.java_class.__javaclass__, value)
 
 
 @public
 class JavaField(object):
 
+    # Equivalent of: jt.jtypes.JavaField
+
     def __init__(self, java_class, name, signature):
 
-        self.java_class = java_class
-        self.name       = name
-        self._signature = signature
+        self.java_class  = java_class
+        self.name        = name
+        self.__signature = signature
+        type_manager = JVM.jvm.type_manager
+        self.__thandler  = type_manager.get_handler(self.__signature)
 
-        self._accessor = {
-            "Z": java.GetBooleanField,
-            "B": java.GetByteField,
-            "C": java.GetCharField,
-            "S": java.GetShortField,
-            "I": java.GetIntField,
-            "J": java.GetLongField,
-            "F": java.GetFloatField,
-            "D": java.GetDoubleField,
-        }.get(self._signature, java.GetObjectField)
-
-        self._mutator = {
-            "Z": java.SetBooleanField,
-            "B": java.SetByteField,
-            "C": java.SetCharField,
-            "S": java.SetShortField,
-            "I": java.SetIntField,
-            "J": java.SetLongField,
-            "F": java.SetFloatField,
-            "D": java.SetDoubleField,
-        }.get(self._signature, java.SetObjectField)
-
-        class_dict = self.java_class.__dict__
-        jclass = class_dict["__javaclass__"]
-
-        self.__jfield_id = java.GetFieldID(jclass, self.name, self._signature)
-        if self.__jfield_id.value is None:
-            raise RuntimeError("Couldn't find Java field '{}.{}'".format(
-                               jclass, self.name))
+        with JVM.jvm as (jvm, jenv):
+            try:
+                self.__jfield_id = jenv.GetFieldID(self.java_class.__javaclass__,
+                                                   self.name.encode("utf-8"),
+                                                   self.__signature.encode("utf-8"))
+            except: # <AK> was: if self.__jfield_id.value is None:
+                raise RuntimeError("Couldn't find Java field '{}.{}'".format(
+                                   self.java_class.__javaclass__, self.name))
 
     def get(self, instance):
 
-        this = instance.__javaobject__
-
-        result = self._accessor(this, self.__jfield_id)
-        return return_cast(result, self._signature)
+        return self.__thandler.getInstance(self.__jfield_id, instance.__javaobject__)
 
     def set(self, instance, value):
 
-        this = instance.__javaobject__
+        from ..__config__ import config
 
-        self._mutator(this, self.__jfield_id, value)
+        if config.getboolean("WITH_VALID", False) and not self.__thandler.valid(value):
+            raise ValueError("Assigned value is not valid for required field type.")
+
+        self.__thandler.setInstance(self.__jfield_id, instance.__javaobject__, value)
