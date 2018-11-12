@@ -4,14 +4,21 @@ include LICENSE
 include tox.ini
 
 graft src
-#recursive-include jni *.h
-#recursive-include jni *.c
-#recursive-include org *.java
+exclude src/jt/rubicon/java/_conversion.pymy
+prune src/jt/rubicon/java/_typehandler
+include src/jt/rubicon/java/_typehandler/__init__.py
+exclude src/jt/rubicon/_java/org/pybee/rubicon/Python.py
+exclude src/jt/rubicon/jni/*.py_
+exclude src/jt/rubicon/jni/*.mk
+exclude src/jt/rubicon/jni/*.c
 
 graft docs
 prune docs/_build
+recursive-exclude docs *.org *.old *.new
 
 graft tests
+exclude tests/_info_.txt
+recursive-exclude tests *.org *.old *.new
 
 global-exclude .build .build.*
 global-exclude *.py[co] __pycache__

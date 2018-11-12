@@ -8,19 +8,30 @@ A bridge between the Java Runtime Environment and Python.
 Overview
 ========
 
+  | **jtypes.rubicon** is a bridge between Python and Java, allowing these to intercommunicate.
+  | It is an effort to allow Python programs full access to Java class libraries.
+
+  `PyPI record <https://pypi.python.org/pypi/jtypes.rubicon>`__.
+
+  | **jtypes.rubicon** is a lightweight Python package, based on the *ctypes* or *cffi* library.
+  | It is an almost fully compliant implementation of Steve Menard's **JPype** package
+    by reimplementing whole its functionality in a clean Python instead of C/C++.
+
 About Rubicon-Java:
 -------------------
 
-Rubicon-Java
-============
+Borrowed from the `original website <https://github.com/pybee/rubicon-java>`__:
 
-Rubicon-Java is a bridge between the Java Runtime Environment and Python.
-It enables you to:
+  Rubicon-Java
+  ============
 
-* Instantiate objects defined in Java,
-* Invoke static and instance methods on objects defined in Java,
-* Access and modify static and instance fields on objects defined in Java, and
-* Write and use Python implementations of interfaces defined in Java.
+  **Rubicon-Java** is a bridge between the Java Runtime Environment and Python.
+  It enables you to:
+
+  * Instantiate objects defined in Java,
+  * Invoke static and instance methods on objects defined in Java,
+  * Access and modify static and instance fields on objects defined in Java, and
+  * Write and use Python implementations of interfaces defined in Java.
 
 Quickstart
 ----------
@@ -184,6 +195,50 @@ want to contribute code, please `fork the code`_ and `submit a pull request`_.
 .. _log them on Github: https://github.com/pybee/rubicon-java/issues
 .. _fork the code: https://github.com/pybee/rubicon-java
 .. _submit a pull request: https://github.com/pybee/rubicon-java/pulls
+
+Installation
+============
+
+Prerequisites:
+
++ Python 2.7 or higher or 3.4 or higher
+
+  * http://www.python.org/
+  * 2.7 and 3.6 are primary test environments.
+
++ pip and setuptools
+
+  * http://pypi.python.org/pypi/pip
+  * http://pypi.python.org/pypi/setuptools
+
+To install run::
+
+    python -m pip install --upgrade jtypes.rubicon
+
+To ensure everything is running correctly you can run the tests using::
+
+    python -m jt.rubicon.tests
+
+Development
+===========
+
+Visit `development page <https://github.com/karpierz/jtypes.rubicon>`__
+
+Installation from sources:
+
+Clone the `sources <https://github.com/karpierz/jtypes.rubicon>`__ and run::
+
+    python -m pip install ./jtypes.rubicon
+
+or on development mode::
+
+    python -m pip install --editable ./jtypes.rubicon
+
+Prerequisites:
+
++ Development is strictly based on *tox*. To install it run::
+
+    python -m pip install tox
 
 License
 =======
