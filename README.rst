@@ -22,9 +22,6 @@ About Rubicon-Java:
 
 Borrowed from the `original website`_:
 
-  Rubicon-Java
-  ============
-
   **Rubicon-Java** is a bridge between the Java Runtime Environment and Python.
   It enables you to:
 
