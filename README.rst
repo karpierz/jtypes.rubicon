@@ -11,7 +11,7 @@ Overview
   | **jtypes.rubicon** is a bridge between Python and Java, allowing these to intercommunicate.
   | It is an effort to allow Python programs full access to Java class libraries.
 
-  `PyPI record <https://pypi.python.org/pypi/jtypes.rubicon>`__.
+  `PyPI record`_.
 
   | **jtypes.rubicon** is a lightweight Python package, based on the *ctypes* or *cffi* library.
   | It is an almost fully compliant implementation of Steve Menard's **JPype** package
@@ -20,7 +20,7 @@ Overview
 About Rubicon-Java:
 -------------------
 
-Borrowed from the `original website <https://github.com/pybee/rubicon-java>`__:
+Borrowed from the `original website`_:
 
   Rubicon-Java
   ============
@@ -186,16 +186,6 @@ Contributing
 If you experience problems with this backend, `log them on GitHub`_. If you
 want to contribute code, please `fork the code`_ and `submit a pull request`_.
 
-.. _BeeWare suite: http://pybee.org
-.. _Rubicon suite: http://pybee.org/rubicon
-.. _Read The Docs: http://rubicon-java.readthedocs.org
-.. _@pybeeware on Twitter: https://twitter.com/pybeeware
-.. _pybee/general: https://gitter.im/pybee/general
-.. _BeeWare Community Code of Conduct: http://pybee.org/community/behavior/
-.. _log them on Github: https://github.com/pybee/rubicon-java/issues
-.. _fork the code: https://github.com/pybee/rubicon-java
-.. _submit a pull request: https://github.com/pybee/rubicon-java/pulls
-
 Installation
 ============
 
@@ -222,11 +212,11 @@ To ensure everything is running correctly you can run the tests using::
 Development
 ===========
 
-Visit `development page <https://github.com/karpierz/jtypes.rubicon>`__
+Visit `development page`_
 
 Installation from sources:
 
-Clone the `sources <https://github.com/karpierz/jtypes.rubicon>`__ and run::
+Clone the `sources`_ and run::
 
     python -m pip install ./jtypes.rubicon
 
@@ -253,3 +243,18 @@ Authors
 =======
 
 * Adam Karpierz <adam@karpierz.net>
+
+.. _PyPI record: https://pypi.python.org/pypi/jtypes.rubicon
+.. _original website: https://github.com/pybee/rubicon-java
+.. _development page: https://github.com/karpierz/jtypes.rubicon
+.. _sources: https://github.com/karpierz/jtypes.rubicon
+
+.. _BeeWare suite: http://pybee.org
+.. _Rubicon suite: http://pybee.org/rubicon
+.. _Read The Docs: http://rubicon-java.readthedocs.org
+.. _@pybeeware on Twitter: https://twitter.com/pybeeware
+.. _pybee/general: https://gitter.im/pybee/general
+.. _BeeWare Community Code of Conduct: http://pybee.org/community/behavior/
+.. _log them on Github: https://github.com/pybee/rubicon-java/issues
+.. _fork the code: https://github.com/pybee/rubicon-java
+.. _submit a pull request: https://github.com/pybee/rubicon-java/pulls
