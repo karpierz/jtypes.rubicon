@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018, Adam Karpierz
+# Copyright (c) 2016-2019, Adam Karpierz
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 
@@ -12,13 +12,13 @@ from ._typehandler import *  # noqa
 @public
 class TypeManager(object):
 
-    __slots__ = ('_state', '_object_handlers')
+    __slots__ = ('_state', '_handlers')
 
     def __init__(self, state=None):
 
         super(TypeManager, self).__init__()
-        self._state           = state
-        self._object_handlers = {}
+        self._state    = state
+        self._handlers = {}
 
     def start(self):
 
@@ -35,21 +35,20 @@ class TypeManager(object):
 
     def stop(self):
 
-        self._object_handlers = {}
+        self._handlers = {}
 
     def _register_handler(self, hcls):
 
         thandler = hcls(self._state)
-        self._object_handlers[thandler._jclass] = thandler
+        self._handlers[thandler._jclass] = thandler
         return thandler
 
     def get_handler(self, jclass):
 
-        thandler = self._object_handlers.get(jclass)
+        thandler = self._handlers.get(jclass)
         if thandler is None:
             if not jclass.startswith("L"):
                 raise ValueError("Don't know how to convert argument with "
                                  "type signature '{}'".format(jclass))
-            self._object_handlers[jclass] = thandler = ObjectHandler(self._state, jclass)
-
+            self._handlers[jclass] = thandler = ObjectHandler(self._state, jclass)
         return thandler

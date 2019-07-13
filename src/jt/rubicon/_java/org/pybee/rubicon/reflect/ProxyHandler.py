@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018, Adam Karpierz
+# Copyright (c) 2016-2019, Adam Karpierz
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 
@@ -36,7 +36,7 @@ def invoke(env, this,
             try:
                 instance = jni.from_oid(target)
 
-                method = jt_jvm.JMethod(None, jmethod, borrowed=True) if jmethod else None
+                method = jt_jvm.JMethod(None, jmethod, own=False) if jmethod else None
                 method_name = method.getName()
 
                 argcnt = jenv.GetArrayLength(jargs) if jargs else 0

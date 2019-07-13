@@ -2,7 +2,7 @@ from jt.jvm.java.class2py import *
 
 header = \
 """\
-# Copyright (c) 2016-2018, Adam Karpierz
+# Copyright (c) 2016-2019, Adam Karpierz
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 

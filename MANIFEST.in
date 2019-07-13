@@ -3,22 +3,16 @@ include CHANGES.rst
 include LICENSE
 include tox.ini
 
+graft docs
+prune docs/_build
+
 graft src
-exclude src/jt/rubicon/java/_conversion.pymy
-prune src/jt/rubicon/java/_typehandler
-include src/jt/rubicon/java/_typehandler/__init__.py
-exclude src/jt/rubicon/_java/org/pybee/rubicon/Python.py
-exclude src/jt/rubicon/jni/*.py_
+recursive-exclude src/jt/rubicon *.py_
 exclude src/jt/rubicon/jni/*.mk
 exclude src/jt/rubicon/jni/*.c
 
-graft docs
-prune docs/_build
-recursive-exclude docs *.org *.old *.new
-
 graft tests
-exclude tests/_info_.txt
-recursive-exclude tests *.org *.old *.new
+exclude tests/_info_.txt tests/_report_.txt
 
 global-exclude .build .build.*
 global-exclude *.py[co] __pycache__

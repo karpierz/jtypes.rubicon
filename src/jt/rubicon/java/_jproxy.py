@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018, Adam Karpierz
+# Copyright (c) 2016-2019, Adam Karpierz
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 
@@ -24,7 +24,7 @@ class JavaProxy(object):
 
         # Create a Java-side proxy for this Python-side object
 
-        jclass = JVM.jvm.JClass(None, self.__class__.__javaclass__, borrowed=True)
+        jclass = JVM.jvm.JClass(None, self.__class__.__javaclass__, own=False)
 
         with JVM.jvm as (jvm, jenv), JFrame(jenv, 4): # cloader, interfaces, ihandler, jproxy
             try:
@@ -120,7 +120,7 @@ def dispatch_cast(raw, type_signature):
     type_manager = JVM.jvm.type_manager
     thandler = type_manager.get_handler(type_signature)
     if type_signature in ("Z", "C", "B", "S", "I", "J", "F", "D"):
-        jobject = JVM.jvm.JObject(None, raw, borrowed=True)
+        jobject = JVM.jvm.JObject(None, raw, own=False)
         return thandler.toPython(jobject)
     elif type_signature == "Ljava/lang/String;":
         return thandler.toPython(raw)

@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018, Adam Karpierz
+# Copyright (c) 2016-2019, Adam Karpierz
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 
@@ -58,8 +58,7 @@ class JVM(_JVM):
 
         if dll_path is not None:
             self._dll_path = dll_path
-
-        if self._dll_path is None:
+        elif self._dll_path is None:
             finder = JVMFinder()
             self._dll_path = finder.get_jvm_path()
 

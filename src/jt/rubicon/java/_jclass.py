@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018, Adam Karpierz
+# Copyright (c) 2016-2019, Adam Karpierz
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 
@@ -184,7 +184,7 @@ class JavaInterface(type):
 @annotate(java_class=JavaClass, static=bool)
 def _cache_field(java_class, name, static):
 
-    jclass = JVM.jvm.JClass(None, java_class.__javaclass__, borrowed=True)
+    jclass = JVM.jvm.JClass(None, java_class.__javaclass__, own=False)
 
     try:
         java_field = jclass.getField(name)
@@ -211,7 +211,7 @@ def _cache_field(java_class, name, static):
 @annotate(java_class=JavaClass, static=bool)
 def _cache_methods(java_class, name, static):
 
-    jclass = JVM.jvm.JClass(None, java_class.__javaclass__, borrowed=True)
+    jclass = JVM.jvm.JClass(None, java_class.__javaclass__, own=False)
 
     jclass_hash = jclass.hashCode()
 

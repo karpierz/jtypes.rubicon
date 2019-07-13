@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018, Adam Karpierz
+# Copyright (c) 2016-2019, Adam Karpierz
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 
@@ -29,7 +29,7 @@ class JavaInstance(object):
 
         if jobject is None:
 
-            jclass = JVM.jvm.JClass(None, self.__class__.__javaclass__, borrowed=True)
+            jclass = JVM.jvm.JClass(None, self.__class__.__javaclass__, own=False)
 
             # Check that we know the constructors for the class
 

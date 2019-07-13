@@ -1,0 +1,61 @@
+Running testsuite using JVM: C:\Program Files\Java\jre1.8.0_191\bin\server\jvm.dll 
+
+test_alternatives (tests.test_rubicon.JNITest)
+A class is aware of it's type heirarchy ... ok
+test_double_method (tests.test_rubicon.JNITest)
+A method with a double arguments can be handled. ... ok
+test_enum_method (tests.test_rubicon.JNITest)
+A method with enum arguments can be handled. ... ok
+test_field (tests.test_rubicon.JNITest)
+A field on an instance can be accessed and mutated ... ok
+test_float_method (tests.test_rubicon.JNITest)
+A method with a float arguments can be handled. ... ok
+test_inner (tests.test_rubicon.JNITest)
+Inner classes can be accessed ... ok
+test_interface (tests.test_rubicon.JNITest)
+An Java interface can be defined in Python and proxied. ... ok
+test_method (tests.test_rubicon.JNITest)
+An instance method can be invoked. ... ok
+test_non_existent_field (tests.test_rubicon.JNITest)
+An attribute error is raised if you invoke a non-existent field. ... ok
+test_non_existent_method (tests.test_rubicon.JNITest)
+An attribute error is raised if you invoke a non-existent method. ... ok
+test_non_existent_static_field (tests.test_rubicon.JNITest)
+An attribute error is raised if you invoke a non-existent static field. ... ok
+test_non_existent_static_method (tests.test_rubicon.JNITest)
+An attribute error is raised if you invoke a non-existent static method. ... ok
+test_non_static_access_static (tests.test_rubicon.JNITest)
+A static field/method cannot be accessed from an instance context ... ok
+test_object_return (tests.test_rubicon.JNITest)
+If a method or field returns an object, you get an instance of that type returned ... ok
+test_polymorphic_constructor (tests.test_rubicon.JNITest)
+Check that the right constructor is activated based on arguments used ... ok
+test_polymorphic_method (tests.test_rubicon.JNITest)
+Check that the right method is activated based on arguments used ... ok
+test_polymorphic_static_method (tests.test_rubicon.JNITest)
+Check that the right static method is activated based on arguments used ... ok
+test_protected_field (tests.test_rubicon.JNITest)
+An attribute error is raised if you invoke a non-public field. ... ok
+test_protected_method (tests.test_rubicon.JNITest)
+An attribute error is raised if you invoke a non-public method. ... ok
+test_protected_static_field (tests.test_rubicon.JNITest)
+An attribute error is raised if you invoke a non-public static field. ... ok
+test_protected_static_method (tests.test_rubicon.JNITest)
+An attribute error is raised if you invoke a non-public static method. ... ok
+test_simple_object (tests.test_rubicon.JNITest) ... ok
+test_static_access_non_static (tests.test_rubicon.JNITest)
+An instance field/method cannot be accessed from the static context ... ok
+test_static_field (tests.test_rubicon.JNITest)
+A static field on a class can be accessed and mutated ... ok
+test_static_method (tests.test_rubicon.JNITest)
+A static method on a class can be invoked. ... ok
+test_string_argument (tests.test_rubicon.JNITest)
+A method with a string argument can be passed. ... ok
+test_string_return (tests.test_rubicon.JNITest)
+If a method or field returns a string, you get a Python string back ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.060s
+
+OK
+svn: 7630

@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018, Adam Karpierz
+// Copyright (c) 2016-2019, Adam Karpierz
 // Licensed under the BSD license
 // http://opensource.org/licenses/BSD-3-Clause
 
@@ -17,18 +17,18 @@ public class Python
     //                   the Rubicon library
     // @return 0 on success; non-zero on failure.
     //
-    public native static int start(String pythonHome, String pythonPath, String rubiconLib);
+    public static native int start(String pythonHome, String pythonPath, String rubiconLib);
 
     // Run the Python script.
     //
     // @param script The path to the Python script to run
     // @return 0 on success; non-zero on failure.
     //
-    public native static int run(String script);
+    public static native int run(String script);
 
     // Stop the Python runtime.
     //
-    public native static void stop();
+    public static native void stop();
 
     static
     {

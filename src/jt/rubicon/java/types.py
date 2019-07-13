@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018, Adam Karpierz
+# Copyright (c) 2016-2019, Adam Karpierz
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 
@@ -26,73 +26,73 @@ public(jlong_p    = jni.POINTER(jlong))
 public(jfloat_p   = jni.POINTER(jfloat))
 public(jdouble_p  = jni.POINTER(jdouble))
 
-@public
-class jobject(jni.jobject):
-    pass
+public(jobject = jni.jobject)
+#class jobject(jni.jobject):
+#    pass
 
-@public
-class jclass(jobject):
-    pass
+public(jclass = jobject)
+#class jclass(jobject):
+#    pass
 
-@public
-class jthrowable(jobject):
-    pass
+public(jthrowable = jobject)
+#class jthrowable(jobject):
+#    pass
 
-@public
-class jstring(jobject):
-    pass
+public(jstring = jobject)
+#class jstring(jobject):
+#    pass
 
-@public
-class jarray(jobject):
-    pass
+public(jarray = jobject)
+#class jarray(jobject):
+#    pass
 
-@public
-class jbooleanArray(jarray):
-    pass
+public(jbooleanArray = jarray)
+#class jbooleanArray(jarray):
+#    pass
 
-@public
-class jcharArray(jarray):
-    pass
+public(jcharArray = jarray)
+#class jcharArray(jarray):
+#    pass
 
-@public
-class jbyteArray(jarray):
-    pass
+public(jbyteArray = jarray)
+#class jbyteArray(jarray):
+#    pass
 
-@public
-class jshortArray(jarray):
-    pass
+public(jshortArray = jarray)
+#class jshortArray(jarray):
+#    pass
 
-@public
-class jintArray(jarray):
-    pass
+public(jintArray = jarray)
+#class jintArray(jarray):
+#    pass
 
-@public
-class jlongArray(jarray):
-    pass
+public(jlongArray = jarray)
+#class jlongArray(jarray):
+#    pass
 
-@public
-class jfloatArray(jarray):
-    pass
+public(jfloatArray = jarray)
+#class jfloatArray(jarray):
+#    pass
 
-@public
-class jdoubleArray(jarray):
-    pass
+public(jdoubleArray = jarray)
+#class jdoubleArray(jarray):
+#    pass
 
-@public
-class jobjectArray(jarray):
-    pass
+public(jobjectArray = jarray)
+#class jobjectArray(jarray):
+#    pass
 
-@public
-class jweak(jobject):
-    pass
+public(jweak = jobject)
+#class jweak(jobject):
+#    pass
 
-@public
-class jmethodID(jobject):
-    pass
+public(jmethodID = jobject)
+#class jmethodID(jobject):
+#    pass
 
-@public
-class jfieldID(jobject):
-    pass
+public(jfieldID = jobject)
+#class jfieldID(jobject):
+#    pass
 
 public(JNINativeMethod   = jni.JNINativeMethod)
 public(JNINativeMethod_p = jni.POINTER(JNINativeMethod))

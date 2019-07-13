@@ -13,6 +13,12 @@ class JNITest(TestCase):
 
         Stack = JavaClass('java/util/Stack')
 
+        # <AK>: added for coverage
+        # Construct instance using keyword arguments raise an error.
+        with self.assertRaises(ValueError):
+            stack = Stack(kwarg=123)
+        # </AK>
+
         stack = Stack()
 
         stack.push("Hello")

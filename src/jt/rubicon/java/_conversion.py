@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018, Adam Karpierz
+# Copyright (c) 2016-2019, Adam Karpierz
 # Licensed under the BSD license
 # http://opensource.org/licenses/BSD-3-Clause
 
@@ -107,11 +107,11 @@ def _convert_args_to_jargs(args, type_names):
         elif isinstance(jarg, jtypes.jdouble):
             jargs.setDouble(pos, jarg)
         elif isinstance(jarg, jtypes.jstring):
-            jobject = JVM.jvm.JObject(None, jarg, borrowed=True)
+            jobject = JVM.jvm.JObject(None, jarg, own=False)
             jargs.setObject(pos, jobject)
             jargs.argtypes[pos] = EJavaType.STRING
         else:
-            jobject = JVM.jvm.JObject(None, jarg, borrowed=True)
+            jobject = JVM.jvm.JObject(None, jarg, own=False)
             jargs.setObject(pos, jobject)
 
     return jargs
@@ -281,7 +281,7 @@ def type_names_for_params(params):
                     raise RuntimeError("Unable to retrieve parameter type from array.")
                 if not java_type: # <AK> was: if java_type.value is None:
                     raise RuntimeError("Unable to retrieve parameter type from array.")
-                jclass = JVM.jvm.JClass(None, java_type, borrowed=True)
+                jclass = JVM.jvm.JClass(None, java_type, own=False)
 
             try:
                 type_name = str(jclass.getName())
@@ -332,7 +332,7 @@ def return_cast(raw, return_signature):
     elif return_signature == "Ljava/lang/String;":
 
         with JVM.jvm as (_, jenv):
-            return JString(jenv, raw, borrowed=True).str if raw else None
+            return JString(jenv, raw, own=False).str if raw else None
 
     elif return_signature.startswith("L"):
 
